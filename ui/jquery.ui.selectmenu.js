@@ -100,6 +100,7 @@ $.widget("ui.selectmenu", {
 			.bind('click.selectmenu', function() {
 				return false;
 			})
+			// key events for closed menu
 			.bind("keydown.selectmenu", function(event) {
 				var ret = false;
 				switch (event.keyCode) {
@@ -208,6 +209,7 @@ $.widget("ui.selectmenu", {
 		
 		// transfer menu click to menu button
 		this.list
+			// key events for open menu
 			.bind("keydown.selectmenu", function(event) {
 				var ret = false;
 				switch (event.keyCode) {
@@ -287,7 +289,7 @@ $.widget("ui.selectmenu", {
 				selected: opt.attr('selected'),
 				disabled: opt.attr('disabled'),
 				classes: opt.attr('class'),
-				typeahead: opt.attr('typeahead'),
+				typeahead: opt.attr('data-typeahead'),
 				parentOptGroup: opt.parent('optgroup'),
 				bgImage: o.bgImage.call(opt)
 			});
@@ -317,7 +319,7 @@ $.widget("ui.selectmenu", {
 					thisAAttr[ 'aria-disabled' ] = selectOptionData[ i ].disabled;
 				}
 				if ( selectOptionData[ i ].typeahead ) {
-					thisAAttr[ 'typeahead' ] = selectOptionData[ i ].typeahead;
+					thisAAttr[ 'data-typeahead' ] = selectOptionData[ i ].typeahead;
 				}				
 				var thisA = $('<a/>', thisAAttr);
 				var thisLi = $('<li/>', thisLiAttr)	
@@ -492,7 +494,6 @@ $.widget("ui.selectmenu", {
 		if ( self._typeAhead_chars.length < 2 ||
 		     (self._typeAhead_chars.substr(-2, 1) === c && self._typeAhead_cycling) ) {
 			self._typeAhead_cycling = true;
-
 			// Match only the first character and loop
 			matchee = c;
 		}
@@ -514,8 +515,8 @@ $.widget("ui.selectmenu", {
 			this._focusedOptionLi().data('index')) || 0;
 
 		for (var i = 0; i < this._optionLis.length; i++) {
-			var thisText = this._optionLis.eq(i).text().substr(0, matchee.length).toLowerCase();
-
+			// use the typeahead text if we have it
+			var thisText = (this._optionLis.eq(i).find("a").attr('data-typeahead') || this._optionLis.eq(i).find("a").text()).substr(0, matchee.length).toLowerCase();
 			if ( thisText === matchee ) {
 				if ( self._typeAhead_cycling ) {
 					if ( nextIndex === null )
@@ -532,11 +533,9 @@ $.widget("ui.selectmenu", {
 		}
 
 		if ( nextIndex !== null ) {
-			// Why using trigger() instead of a direct method to select the
-			// index? Because we don't what is the exact action to do, it
-			// depends if the user is typing on the element or on the popped
-			// up menu
-			this._optionLis.eq(nextIndex).find("a").trigger( eventType );
+			// trigger both the li and the a to properly enabling styling?
+			// seems like we need to pick one of these things instead
+			this._optionLis.eq(nextIndex).trigger( eventType ).find("a").trigger( eventType );
 		}
 
 		self._typeAhead_timer = window.setTimeout(function() {
@@ -688,6 +687,7 @@ $.widget("ui.selectmenu", {
 			var newIndex = parseInt(this._optionLis.filter(amt).data('index'), 10);
 		}
 
+
 		if (newIndex < 0) {
 			newIndex = 0;
 		}
@@ -707,7 +707,9 @@ $.widget("ui.selectmenu", {
 			(amt > 0) ? ++amt : --amt;
 			this._moveFocus(amt, newIndex);
 		} else {
-			this._optionLis.eq(newIndex).find('a:eq(0)').attr('id',activeID).focus();
+			this._focusedOptionLi().removeClass(this.widgetBaseClass + '-item-focus ui-state-hover');
+			this._optionLis.eq(newIndex).addClass(this.widgetBaseClass + '-item-focus ui-state-hover')
+				.find('a:eq(0)').attr('id',activeID).focus();
 		}
 
 		this.list.attr('aria-activedescendant', activeID);
